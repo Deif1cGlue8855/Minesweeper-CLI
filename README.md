@@ -7,17 +7,17 @@ For Nvim:
 
 # Conrols:
 
-h - left
-l - right
-k - up
-j - down
+- h - left
+- l - right
+- k - up
+- j - down
 
-a - flag
-s - select tile
+- a - flag
+- s - select tile
 
-r - restart
-q - change difficulty
-c - change board size (only works on custom difficulty)
+- r - restart
+- q - change difficulty
+- c - change board size (only works on custom difficulty)
 
 # Info
 
