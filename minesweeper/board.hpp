@@ -3,6 +3,7 @@
 
 //Include libraries
 #include <iostream>
+#include <fstream>
 #include <vector>
 #include <string>
 #include <cstdlib>
@@ -37,6 +38,8 @@ class board{
         int inMenuSelector = 0;
         bool custMenu = false;
 
+        std::string saveFile = "save.txt";
+
         RGB red = {255,0,0};
         RGB gruvYellow = {215, 153, 33};
         RGB green = {0,255,0};
@@ -66,6 +69,7 @@ class board{
         int numOfFlags = 0;
         
         std::string difficulty = "easy";
+        std::string saveData[4][4];
 
         player pPos;
     public:
@@ -92,6 +96,23 @@ inline board::board(int w, int h, int numOfMines){
     this->w = w;
     this->h = h;
     this->numOfMines = numOfMines;
+
+    std::fstream file(this->saveFile);
+    std::string line;
+
+    int diffNum = 0;
+    int saveNum = 0;
+
+    while(std::getline(file,line)){
+        if(line[0] == '#'){
+            diffNum++;
+            saveNum = 0;
+        }
+        else{
+            this->saveData[diffNum][saveNum] = line;
+            saveNum ++;
+        }
+    }
 }
 
 /*
@@ -410,13 +431,30 @@ inline void board::drawUi(){
         printAt("]", xMod + 2 + std::to_string(this->w).size() + std::to_string(this->h).size(), yMod, gruvCream, "49m");
         yMod += 2;
 
-        printAt(characterSet[1], xMod, yMod, gruvRed, "49m");
-        printAt(": " + std::to_string(this->numOfMines), xMod + 1, yMod, gruvCream, "49m");
+        printAt(characterSet[1], xMod + 1, yMod, gruvRed, "49m");
+        printAt(": " + std::to_string(this->numOfMines), xMod + 2, yMod, gruvCream, "49m");
 
         yMod += 1;
 
-        printAt(characterSet[2], xMod, yMod, gruvRed, "49m");
-        printAt(": " + std::to_string(this->numOfFlags), xMod + 1, yMod, gruvCream, "49m");
+        printAt(characterSet[2], xMod + 1, yMod, gruvRed, "49m");
+        printAt(": " + std::to_string(this->numOfFlags), xMod + 2, yMod, gruvCream, "49m");
+        
+        yMod += 1;
+
+        int diffCol = 0;
+        if(difficulty == "easy"){diffCol = 0;}
+        else if(difficulty == "medi"){diffCol = 1;}
+        else if(difficulty == "hard"){diffCol = 2;}
+        else if(difficulty == "cust"){diffCol = 2;}
+
+        printAt("P: ", xMod + 1, yMod + 1, gruvCream, "49m");
+        printAt(this->saveData[diffCol][0], xMod + 2, yMod + 1, gruvBlue, "49m");
+
+        printAt("W: ", xMod + 1, yMod + 2, gruvCream, "49m");
+        printAt(this->saveData[diffCol][1], xMod + 2, yMod + 2, gruvGreen, "49m");
+
+        printAt("L: ", xMod + 1, yMod + 3, gruvCream, "49m");
+        printAt(this->saveData[diffCol][2], xMod + 2, yMod + 3, gruvGreen, "49m");
         //Difficulty side
         xMod = (this->screenW / 2) - (this->w / 2) - 6;
         yMod = (this->screenH / 2) - (this->h / 2) + 1;
