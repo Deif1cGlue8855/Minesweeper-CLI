@@ -72,6 +72,8 @@ class board{
         std::string saveData[4][4];
 
         player pPos;
+        
+        int tilesBroken = 0;
     public:
         board(int w, int h, int numOfMines);
         
@@ -85,11 +87,12 @@ class board{
         void flagTile();
         void selectTile();
         void dominoBreak(int x, int y);
-        void gameover();
+        void gameover(char result);
         void getScreenDims();
         void drawUi();
         void changeDifficulty(std::string diff);
         bool inCustMenu();
+        void saveToFile();
 };
 
 inline board::board(int w, int h, int numOfMines){
@@ -102,16 +105,31 @@ inline board::board(int w, int h, int numOfMines){
 
     int diffNum = 0;
     int saveNum = 0;
+    int ln = 0;
 
-    while(std::getline(file,line)){
-        if(line[0] == '#'){
-            diffNum++;
-            saveNum = 0;
+    if(file.is_open()){
+        while(std::getline(file,line)){
+            if(line[0] == '#'){
+                diffNum++;
+                saveNum = 0;
+            }
+            else{
+                this->saveData[diffNum][saveNum] = line;
+                saveNum ++;
+                ln++;
+            }
         }
-        else{
-            this->saveData[diffNum][saveNum] = line;
-            saveNum ++;
+        file.close();
+    }
+    else{
+        for(int i = 0; i < 4; i++){
+            for(int j = 0; j < 4; j++){
+                this->saveData[j][i] = "0";
+            }
         }
+        std::ofstream saveFile(this->saveFile);
+        saveFile.close();
+        saveToFile();
     }
 }
 
@@ -291,12 +309,30 @@ inline void board::flagTile(){
     }
 }
 
-inline void board::gameover(){
+inline void board::gameover(char result){
+
+    int diffCol = 0;
+    if(difficulty == "easy"){diffCol = 0;}
+    else if(difficulty == "medi"){diffCol = 1;}
+    else if(difficulty == "hard"){diffCol = 2;}
+    else if(difficulty == "cust"){diffCol = 3;}
+
+    if(result == 'L'){
+        this->saveData[diffCol][2] = std::to_string(std::stoi(this->saveData[diffCol][2]) + 1);
+        this->saveData[diffCol][3] = "0";   
+    }
+    else if(result == 'W'){
+        this->saveData[diffCol][1] = std::to_string(std::stoi(this->saveData[diffCol][1]) + 1);
+        this->saveData[diffCol][3] = std::to_string(std::stoi(this->saveData[diffCol][3]) + 1);
+        std::cin.get();
+    }
     this->pPos.x = 0;
     this->pPos.y = 0;
     this->initTable();
     this->firstMove = true;
     this->numOfFlags = 0;
+    this->tilesBroken = 0;
+    saveToFile();
     for(int y = 0; y < this->screenH; y++){
         for(int x = 0; x < this->screenW; x++){
             printAt(" ", x, y, white, "49m");
@@ -304,21 +340,33 @@ inline void board::gameover(){
     }
 }
 
+inline void board::saveToFile(){
+    std::ofstream file(this->saveFile);
+
+    for(int y = 0; y < 4; y++){
+        for(int x = 0; x < 4; x++){
+            file << this->saveData[y][x] << std::endl;
+        }
+        file << "#" << std::endl;
+    }
+}
+
 inline void board::dominoBreak(int x, int y){
     //Implement something for gameover
-    if (this->table[y][x].isMine){this->gameover(); return;}
+    if (this->table[y][x].isMine){this->gameover('L'); return;}
     if (this->table[y][x].isReveal) return;  
-    if (this->table[y][x].value != 0){this->table[y][x].isReveal = true; return;}  
+    if (this->table[y][x].value != 0){this->table[y][x].isReveal = true; this->tilesBroken++; return;}  
 
     this->table[y][x].isReveal = true;
+    this->tilesBroken++;
 
     if (x > 0) this->dominoBreak(x - 1, y);
     if (y > 0) this->dominoBreak(x, y - 1);
     if (x < this->w - 1) this->dominoBreak(x + 1, y);
     if (y < this->h - 1) this->dominoBreak(x, y + 1);
+
     if(x > 0 && y > 0) this->dominoBreak(x-1,y-1);
     if(x > 0 && y < this->h - 1) this->dominoBreak(x-1,y+1);
-
     if(x < this->w - 1 && y > 0) this->dominoBreak(x+1,y-1);
     if(x < this->w - 1 && y < this->h - 1) this->dominoBreak(x+1,y+1);
 }
@@ -331,9 +379,18 @@ inline void board::selectTile(){
             if(this->table[this->pPos.y][this->pPos.x].value == 0 && ! this->table[this->pPos.y][this->pPos.x].isMine){break;}
             this->initTable();
         }
+        
+        int diffCol = 0;
+        if(difficulty == "easy"){diffCol = 0;}
+        else if(difficulty == "medi"){diffCol = 1;}
+        else if(difficulty == "hard"){diffCol = 2;}
+        else if(difficulty == "cust"){diffCol = 3;}
+
+        this->saveData[diffCol][0] = std::to_string(std::stoi(this->saveData[diffCol][0]) + 1);
     }
     if(! this->table[this->pPos.y][this->pPos.x].isFlag){
         this->dominoBreak(this->pPos.x, this->pPos.y);
+        if(this->tilesBroken == (this->w * this-> h) - this->numOfMines){gameover('W');}
     }
 }
 
@@ -362,7 +419,7 @@ inline void board::playerMove(){
             this->selectTile();
         }
         else if(c == 'r'){
-            this->gameover();
+            this->gameover('N');
         }
         else if(c == 'q'){
             this->changeDifficulty(this->difficulty);
@@ -445,16 +502,19 @@ inline void board::drawUi(){
         if(difficulty == "easy"){diffCol = 0;}
         else if(difficulty == "medi"){diffCol = 1;}
         else if(difficulty == "hard"){diffCol = 2;}
-        else if(difficulty == "cust"){diffCol = 2;}
+        else if(difficulty == "cust"){diffCol = 3;}
 
         printAt("P: ", xMod + 1, yMod + 1, gruvCream, "49m");
-        printAt(this->saveData[diffCol][0], xMod + 2, yMod + 1, gruvBlue, "49m");
+        printAt(this->saveData[diffCol][0], xMod + 4, yMod + 1, gruvBlue, "49m");
 
         printAt("W: ", xMod + 1, yMod + 2, gruvCream, "49m");
-        printAt(this->saveData[diffCol][1], xMod + 2, yMod + 2, gruvGreen, "49m");
+        printAt(this->saveData[diffCol][1], xMod + 4, yMod + 2, gruvGreen, "49m");
 
         printAt("L: ", xMod + 1, yMod + 3, gruvCream, "49m");
-        printAt(this->saveData[diffCol][2], xMod + 2, yMod + 3, gruvGreen, "49m");
+        printAt(this->saveData[diffCol][2], xMod + 4, yMod + 3, gruvRed, "49m");
+
+        printAt("S: ", xMod + 1, yMod + 4, gruvCream, "49m");
+        printAt(this->saveData[diffCol][3], xMod + 4, yMod + 4, gruvOrange, "49m");
         //Difficulty side
         xMod = (this->screenW / 2) - (this->w / 2) - 6;
         yMod = (this->screenH / 2) - (this->h / 2) + 1;
@@ -529,7 +589,7 @@ inline void board::changeDifficulty(std::string diff){
         this->numOfMines = 10;
         this->difficulty = "easy";
     }
-    this->gameover();
+    this->gameover('N');
 }
 
 inline bool board::inCustMenu(){
