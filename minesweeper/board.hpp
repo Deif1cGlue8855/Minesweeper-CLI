@@ -324,6 +324,9 @@ inline void board::gameover(char result){
     else if(result == 'W'){
         this->saveData[diffCol][1] = std::to_string(std::stoi(this->saveData[diffCol][1]) + 1);
         this->saveData[diffCol][3] = std::to_string(std::stoi(this->saveData[diffCol][3]) + 1);
+        this->drawBoard();
+        this->drawUi();
+        this->printBuffer();
         std::cin.get();
     }
     this->pPos.x = 0;
